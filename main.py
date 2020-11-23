@@ -9,6 +9,7 @@ import numpy as np
 from keras_preprocessing.image import ImageDataGenerator
 from skimage import io
 from skimage import transform, exposure
+from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
@@ -101,12 +102,17 @@ num_labels = 43
 
 LOGGER.info('Loading train data')
 train_X, train_Y = load_cropped_train_data()
+train_X, test_X, train_Y, test_Y = train_test_split(
+    train_X, train_Y, test_size=0.25, random_state=42
+)
 
 LOGGER.info('Loading test data')
 
 train_X = train_X.astype(np.float64) / 255.0
+test_X = test_X.astype(np.float64) / 255
 
 train_Y = to_categorical(train_Y, num_labels)
+test_Y = to_categorical(test_Y, num_labels)
 
 # Since there are not even number of images in each class we should assign some kind of weight to
 # a class...
@@ -135,6 +141,7 @@ model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['ac
 
 model.fit(
     image_data_augmenter.flow(train_X, train_Y, batch_size=BATCH_SIZE),
+    validation_data=(test_X, test_Y),
     steps_per_epoch=train_X.shape[0] / BATCH_SIZE,
     epochs=EPOCHS,
     class_weight=class_weight,
